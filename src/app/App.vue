@@ -1,10 +1,13 @@
 <script setup lang="ts">
-import { Anchor, CircleStop, Flag, Pause, Play, RotateCcw } from 'lucide-vue-next'
+import { computed, ref } from 'vue'
+import { Anchor, CircleStop, Flag, Layers, Pause, Play, RotateCcw } from 'lucide-vue-next'
 import { CourseChart } from '../features/chart'
 import { WindPanel } from '../features/wind'
 import { SailPanel } from '../features/sail'
 import { MarksPanel } from '../features/jury'
 import { LogbookPanel } from '../features/logbook'
+import ArchiveWorkbench from '../features/archive/ui/ArchiveWorkbench.vue'
+import { archiveVoyages } from '../features/archive/model/archiveData'
 import { clock } from '../shared/format'
 import { useRace } from './useRace'
 
@@ -13,6 +16,34 @@ const { voyages, selected, cursor, notice, seek, open } = logbook
 const { mode } = wind
 const { events } = jury
 const labels = { ready: '待出发', running: '竞速中', paused: '已暂停', finished: '已完赛', abandoned: '未完赛' }
+
+const archiveMode = ref(false)
+const archiveVoyageId = ref(archiveVoyages[0].id)
+const archiveVoyage = computed(() => archiveVoyages.find(item => item.id === archiveVoyageId.value) ?? null)
+
+function openArchiveWorkbench(id: string = archiveVoyages[0].id) {
+  archiveVoyageId.value = id
+  archiveMode.value = true
+  open(id)
+}
+function handleOpenVoyage(id: string) {
+  open(id)
+  if (id.startsWith('archive-')) {
+    archiveVoyageId.value = id
+    archiveMode.value = true
+  } else {
+    archiveMode.value = false
+  }
+}
+function handleCloseVoyage() {
+  selected.value = null
+  focus.value = null
+  archiveMode.value = false
+}
+function startNewRace() {
+  archiveMode.value = false
+  start()
+}
 </script>
 
 <template>
@@ -27,16 +58,25 @@ const labels = { ready: '待出发', running: '竞速中', paused: '已暂停', 
           <div class="timer"><span>{{ selected ? '回看时间' : '赛时' }}</span><output data-testid="elapsed">{{ clock(frame.time) }}</output></div>
           <div class="timer final-time"><span>{{ selected ? '记录成绩' : '含罚时' }}</span><output data-testid="result">{{ clock(selected ? selected.duration + selected.penalty : frame.time + frame.penalty) }}</output></div>
           <div class="race-actions">
-            <button v-if="!active" type="button" class="primary" @click="start"><component :is="status === 'ready' ? Play : RotateCcw" :size="15"/>{{ status === 'ready' ? '出发' : '再跑一场' }}</button>
+            <button type="button" class="archive-launch" data-testid="open-archive-workbench" @click="openArchiveWorkbench()"><Layers :size="15"/>旧图校勘</button>
+            <button v-if="!active" type="button" class="primary" @click="startNewRace"><component :is="status === 'ready' ? Play : RotateCcw" :size="15"/>{{ status === 'ready' ? '出发' : '再跑一场' }}</button>
             <template v-else>
               <button type="button" class="primary" @click="togglePause"><component :is="status === 'running' ? Pause : Play" :size="15"/>{{ status === 'running' ? '暂停' : '继续' }}</button>
               <button class="icon-button" type="button" title="结束航次" aria-label="结束航次" @click="end('abandoned')"><CircleStop :size="18"/></button>
             </template>
           </div>
         </div>
-        <CourseChart :course="course" :frame="frame" :trail="trail" :replay="Boolean(selected)" :focus="focus"/>
+        <ArchiveWorkbench
+          v-if="archiveMode && archiveVoyage"
+          :voyage="archiveVoyage"
+          :time="cursor"
+          @seek="time => { focus = null; seek(time) }"
+          @exit="handleCloseVoyage"
+          @open="openArchiveWorkbench"
+        />
+        <CourseChart v-else :course="course" :frame="frame" :trail="trail" :replay="Boolean(selected)" :focus="focus"/>
         <LogbookPanel :voyages="voyages" :selected="selected" :events="selected?.events ?? events" :cursor="cursor" :notice="notice" :locked="active"
-          @open="id => { focus = null; open(id) }" @close="selected = null; focus = null" @seek="time => { focus = null; seek(time) }" @focus="locate"/>
+          @open="handleOpenVoyage" @close="handleCloseVoyage" @seek="time => { focus = null; seek(time) }" @focus="locate"/>
       </div>
       <aside class="instruments" aria-label="比赛仪表">
         <WindPanel :wind="frame.wind" :mode="selected?.windMode ?? mode" :locked="active || Boolean(selected)" @mode="wind.set"/>

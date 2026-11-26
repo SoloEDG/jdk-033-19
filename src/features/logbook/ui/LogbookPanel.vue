@@ -11,9 +11,12 @@ defineEmits<{ open: [id: string]; close: []; seek: [time: number]; focus: [event
     <div class="log-heading">
       <h2><BookOpen :size="17"/> 航行记录</h2>
       <div class="log-select">
-        <select aria-label="选择已保存航次" :value="selected?.id ?? ''" :disabled="locked || !voyages.length" @change="($event.target as HTMLSelectElement).value ? $emit('open', ($event.target as HTMLSelectElement).value) : $emit('close')">
+        <select aria-label="选择已保存航次" data-testid="voyage-select" :value="selected?.id ?? ''" :disabled="locked || !voyages.length" @change="($event.target as HTMLSelectElement).value ? $emit('open', ($event.target as HTMLSelectElement).value) : $emit('close')">
           <option value="">实时航迹</option>
-          <option v-for="(voyage,i) in voyages" :key="voyage.id" :value="voyage.id">航次 {{ voyages.length - i }} · {{ voyage.status === 'finished' ? '完赛' : '未完赛' }} {{ clock(voyage.duration + voyage.penalty) }}</option>
+          <option v-for="(voyage,i) in voyages" :key="voyage.id" :value="voyage.id">
+            {{ voyage.archive ? `旧档 · 赛道 ${voyage.archive.raceNumber}` : `航次 ${voyages.length - i}` }}
+            · {{ voyage.status === 'finished' ? '完赛' : '未完赛' }} {{ clock(voyage.duration + voyage.penalty) }}
+          </option>
         </select>
         <button v-if="selected" type="button" class="icon-button" title="退出回看" aria-label="退出回看" @click="$emit('close')"><X :size="16"/></button>
       </div>

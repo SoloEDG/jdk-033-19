@@ -6,7 +6,7 @@ import { buoyPosition, gateEnds } from '../lib/geometry'
 import { pathFor, soundings } from '../lib/chartMarks'
 import BoatGlyph from './BoatGlyph.vue'
 
-const props = defineProps<{ course: Course; frame: Sample; trail: Point[]; replay: boolean; focus: Point | null }>()
+const props = withDefaults(defineProps<{ course: Course; frame: Sample; trail: Point[]; replay: boolean; focus: Point | null; showBoat?: boolean }>(), { showBoat: true })
 const route = computed(() => pathFor([props.course.start, ...props.course.gates.flatMap(gate => gate.approach ? [gate.approach.center, gate.center] : [gate.center])]))
 const trailPath = computed(() => pathFor(props.trail))
 </script>
@@ -42,7 +42,8 @@ const trailPath = computed(() => pathFor(props.trail))
       <g v-if="focus" :transform="`translate(${focus.x} ${focus.y})`" stroke="#ffb44b" fill="none">
         <circle r="17" stroke-width="2"/><path d="M-24 0h11m26 0h11M0-24v11m0 26v11"/>
       </g>
-      <BoatGlyph :boat="frame.boat"/>
+      <BoatGlyph v-if="showBoat" :boat="frame.boat"/>
+      <slot name="overlay" />
       <g transform="translate(876 54)" stroke="#f1e9cd" fill="none">
         <circle r="23" opacity=".5"/><path d="M0 17V-15M-11 0H11M-4-9L0-16 4-9"/>
         <text x="0" y="-29" text-anchor="middle" fill="#f1e9cd" stroke="none" class="depth">N</text>

@@ -40,6 +40,11 @@ export interface Sample {
   nextGate: number
   penalty: number
 }
+export interface VoyageArchiveRef {
+  raceNumber: string
+  sourceNote: string
+}
+
 export interface Voyage {
   id: string
   date: string
@@ -50,4 +55,5 @@ export interface Voyage {
   penalty: number
   samples: Sample[]
   events: RaceEvent[]
+  archive?: VoyageArchiveRef
 }
